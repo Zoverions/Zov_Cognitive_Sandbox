@@ -1,0 +1,5 @@
+{
+  "name": "ZCEB v3.0 Interactive Blueprint",
+  "description": "An interactive web viewer for the Zov Cognitive Engine Blueprint (ZCEB v3.0), featuring AI-powered explanations for complex mathematical and technical concepts.",
+  "requestFramePermissions": []
+}
