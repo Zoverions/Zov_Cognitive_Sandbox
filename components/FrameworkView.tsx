@@ -10,7 +10,7 @@ declare global {
     }
 }
 
-interface ContentViewProps {
+interface FrameworkViewProps {
   section: Section;
   onExplain: (topic: string, context: string) => void;
 }
@@ -67,7 +67,7 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
 };
 
 
-export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) => {
+export const FrameworkView: React.FC<FrameworkViewProps> = ({ section, onExplain }) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {

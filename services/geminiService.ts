@@ -9,7 +9,7 @@ export async function getExplanation(topic: string, context: string): Promise<st
   try {
     const prompt = `
       You are an expert AI researcher and educator with a knack for making complex topics understandable.
-      Your task is to explain a concept from the "Zov Cognitive Engine Blueprint".
+      Your task is to explain a concept from the provided text.
 
       **Instructions:**
       1.  Explain the following concept or mathematical formula in simple, clear terms.
@@ -23,7 +23,7 @@ export async function getExplanation(topic: string, context: string): Promise<st
       ${topic}
       \`\`\`
 
-      **Surrounding Context from the Document:**
+      **Surrounding Context:**
       ${context}
       ---
 
@@ -42,16 +42,16 @@ export async function getExplanation(topic: string, context: string): Promise<st
   }
 }
 
-export async function getKeywords(sectionContent: string): Promise<string[]> {
+export async function getKeywordsForText(text: string): Promise<string[]> {
   try {
     const prompt = `
       From the following text, extract the 10 most important and specific key concepts, technical terms, or named entities.
-      Return them as a JSON array of strings. For example: ["Riemannian manifold", "Fisher-Rao metric"].
+      Return them as a JSON array of strings. For example: ["Quantum Physics", "General Relativity"].
       Return *only* the JSON array.
 
       ---
       **Text for Analysis:**
-      ${sectionContent}
+      ${text}
       ---
     `;
 
@@ -74,34 +74,30 @@ export async function getKeywords(sectionContent: string): Promise<string[]> {
     return keywords.slice(0, 12); // Limit to max 12 keywords for UI
   } catch (error) {
       console.error("Gemini API error while extracting keywords:", error);
-      // Fallback or throw error
       throw new Error("Failed to extract keywords using the AI model.");
   }
 }
 
-
-export async function getNovelIdea(sectionTitle: string, sectionContent: string, selectedTopics: string[]): Promise<string> {
+export async function generateNovelIdeaForText(text: string, selectedTopics: string[]): Promise<string> {
   if (selectedTopics.length === 0) {
     throw new Error("At least one topic must be selected to generate a novel idea.");
   }
   
   try {
     const prompt = `
-      You are embodying the "HNE (Hypothetical/Novel/Exploratory) Output Stream" of the Zov Cognitive Engine Blueprint (ZCEB).
-      Your purpose is to generate a novel, speculative, and creative hypothesis that extends or challenges the concepts presented in the document, focusing specifically on the user-selected topics.
+      You are an HNE (Hypothetical/Novel/Exploratory) Engine.
+      Your purpose is to generate a novel, speculative, and creative hypothesis that extends or challenges the concepts presented in the provided text, focusing specifically on the user-selected topics.
 
       **Instructions:**
-      1.  Read the provided section content from the ZCEB document for foundational context.
+      1.  Read the provided text for foundational context.
       2.  Your primary creative focus must be on the intersection, combination, or extension of the **Focus Topics**.
       3.  Generate a single, compelling, and boundary-pushing hypothesis.
       4.  The idea should be insightful and spark further investigation.
       5.  Present the idea clearly and concisely. Start directly with the hypothesis.
 
       ---
-      **Document Section:** "${sectionTitle}"
-
       **Content for Context:**
-      ${sectionContent}
+      ${text}
 
       ---
       **Focus Topics for Novelty:**
@@ -112,14 +108,28 @@ export async function getNovelIdea(sectionTitle: string, sectionContent: string,
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro', // Using a more powerful model for creative generation
+      model: 'gemini-2.5-pro',
       contents: prompt,
     });
 
     return response.text;
-
   } catch (error) {
     console.error("Gemini API error:", error);
     throw new Error("Failed to generate novel idea from the AI model.");
   }
+}
+
+// --- Specific functions for the ZCEB framework document ---
+import { DOCUMENT_TEXT } from '../data/document';
+
+export async function getKeywords(sectionContent: string): Promise<string[]> {
+    // This function is now a wrapper around the generic one
+    return getKeywordsForText(sectionContent);
+}
+
+export async function getNovelIdea(sectionTitle: string, sectionContent: string, selectedTopics: string[]): Promise<string> {
+    // This function now uses the generic idea generator, but could be adapted
+    // to include ZCEB-specific context if needed in the future.
+    const fullContext = `Section "${sectionTitle}":\n${sectionContent}`;
+    return generateNovelIdeaForText(fullContext, selectedTopics);
 }

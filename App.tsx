@@ -1,13 +1,16 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { ContentView } from './components/ContentView';
+import { FrameworkView } from './components/FrameworkView';
+import { SandboxView } from './components/SandboxView';
 import { ExplanationModal } from './components/ExplanationModal';
 import { parseDocument } from './lib/parser';
 import { DOCUMENT_TEXT } from './data/document';
 import type { Section } from './types';
 import { getExplanation } from './services/geminiService';
 import { MenuIcon, XIcon } from './components/icons';
+
+type ViewMode = 'sandbox' | 'framework';
 
 const App: React.FC = () => {
   const [sections, setSections] = useState<Section[]>([]);
@@ -20,6 +23,7 @@ const App: React.FC = () => {
     context: '',
   });
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('sandbox');
 
   useEffect(() => {
     const parsedSections = parseDocument(DOCUMENT_TEXT);
@@ -40,6 +44,21 @@ const App: React.FC = () => {
       setModalState(s => ({ ...s, content: `Sorry, I couldn't fetch an explanation. ${errorMessage}`, isLoading: false }));
     }
   }, []);
+
+  const handleSectionSelect = (id: string) => {
+    setViewMode('framework');
+    setActiveSectionId(id);
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleViewChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
   
   const activeSection = sections.find(s => s.id === activeSectionId);
 
@@ -48,12 +67,9 @@ const App: React.FC = () => {
       <Sidebar
         sections={sections}
         activeSectionId={activeSectionId}
-        onSectionSelect={(id) => {
-            setActiveSectionId(id);
-            if (window.innerWidth < 768) {
-                setSidebarOpen(false);
-            }
-        }}
+        onSectionSelect={handleSectionSelect}
+        onViewChange={handleViewChange}
+        viewMode={viewMode}
         isOpen={isSidebarOpen}
         setIsOpen={setSidebarOpen}
       />
@@ -66,20 +82,19 @@ const App: React.FC = () => {
              >
                 {isSidebarOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
              </button>
-             <h1 className="text-lg font-bold text-gray-200 ml-4">ZCEB v3.0</h1>
+             <h1 className="text-lg font-bold text-gray-200 ml-4">Zov Cognitive Sandbox</h1>
         </div>
         
-        {activeSection ? (
-          <ContentView
+        {viewMode === 'framework' && activeSection && (
+          <FrameworkView
             key={activeSection.id}
             section={activeSection}
             onExplain={handleExplainRequest}
           />
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <p>Select a section to begin.</p>
-          </div>
         )}
+
+        {viewMode === 'sandbox' && <SandboxView />}
+
       </main>
 
       <ExplanationModal
