@@ -15,7 +15,7 @@ interface FrameworkViewProps {
   onExplain: (topic: string, context: string) => void;
 }
 
-const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => void }> = ({ text, onExplain }) => {
+const InteractiveText: React.FC<{ text: string, onExplain: (topic: string, context: string) => void }> = ({ text, onExplain }) => {
   if (!text) {
     return null;
   }
@@ -29,13 +29,11 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
   
   const regex = new RegExp(`(\\b(?:${KEY_TERMS.join('|')})\\b|\\textbf\\{([^}]+?)\\})`, 'gi');
   
-  // FIX: Use React.ReactNode to correctly type an array of strings and JSX elements, resolving the "Cannot find namespace 'JSX'" error.
   const elements: React.ReactNode[] = [];
   let lastIndex = 0;
   let match;
 
   while ((match = regex.exec(text)) !== null) {
-    // Add the text before the current match
     if (match.index > lastIndex) {
       elements.push(text.substring(lastIndex, match.index));
     }
@@ -43,7 +41,6 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
     const fullMatch = match[0];
     const term = fullMatch.replace(/\\textbf\{|\}/g, '');
 
-    // Add the interactive element for the matched term
     elements.push(
       <span
         key={lastIndex}
@@ -58,7 +55,6 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
     lastIndex = regex.lastIndex;
   }
 
-  // Add any remaining text after the last match
   if (lastIndex < text.length) {
     elements.push(text.substring(lastIndex));
   }
@@ -88,19 +84,17 @@ export const FrameworkView: React.FC<FrameworkViewProps> = ({ section, onExplain
           throwOnError: false
         });
 
-        // Make all rendered math equations interactive
         const mathElements = contentRef.current.querySelectorAll('.katex');
         mathElements.forEach(el => {
           const htmlEl = el as HTMLElement;
-          if (htmlEl.dataset.interactive) return; // Avoid re-binding
+          if (htmlEl.dataset.interactive) return;
           htmlEl.dataset.interactive = 'true';
 
           htmlEl.style.cursor = 'pointer';
-          // Add padding and a hover effect to make interactivity obvious
           htmlEl.classList.add('px-1', 'rounded-md', 'transition-colors', 'duration-200', 'hover:bg-cyan-500/10');
           
           htmlEl.addEventListener('click', (e) => {
-            e.stopPropagation(); // Don't trigger clicks on parent elements
+            e.stopPropagation();
             const annotation = htmlEl.querySelector('annotation[encoding="application/x-tex"]');
             if (annotation && annotation.textContent) {
               onExplain(annotation.textContent, section.content);
@@ -110,14 +104,12 @@ export const FrameworkView: React.FC<FrameworkViewProps> = ({ section, onExplain
       }
     };
 
-    // Use a timeout to ensure React has rendered the content before KaTeX tries to process it.
     const timerId = setTimeout(renderAndEnhanceMath, 0);
     
     return () => clearTimeout(timerId);
 
   }, [section.content, onExplain]);
 
-  // Clean up LaTeX commands that are not for math rendering.
   const cleanContent = (text: string) => {
     return text
       .replace(/\\documentclass\{.*?\}/g, '')
@@ -149,10 +141,6 @@ export const FrameworkView: React.FC<FrameworkViewProps> = ({ section, onExplain
   const processedContent = cleanContent(section.content);
   
   const paragraphs = processedContent.split(/\n\n+/).filter(p => p.trim() !== '');
-
-  const handleExplainWithContext = (topic: string) => {
-    onExplain(topic, section.content);
-  }
 
   return (
     <div ref={contentRef} className="flex-1 p-6 md:p-10 lg:p-12 prose prose-invert prose-lg max-w-4xl mx-auto w-full text-gray-300">

@@ -48,6 +48,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, activeSectionId, onS
                                 <span>Cognitive Sandbox</span>
                             </a>
                         </li>
+                        <li>
+                            <a
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onViewChange('how-it-works');
+                                }}
+                                className={`flex items-center px-3 py-2 my-1 rounded-md text-sm font-medium transition-colors duration-200 ${
+                                    viewMode === 'how-it-works'
+                                        ? 'bg-green-500/10 text-green-300 font-semibold'
+                                        : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'
+                                }`}
+                            >
+                                <BookOpenIcon className="h-5 w-5 mr-3" />
+                                <span>How It Works</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 <div>

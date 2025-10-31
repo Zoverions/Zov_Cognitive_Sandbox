@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { FrameworkView } from './components/FrameworkView';
 import { SandboxView } from './components/SandboxView';
+import { HowItWorksView } from './components/HowItWorksView';
 import { ExplanationModal } from './components/ExplanationModal';
 import { parseDocument } from './lib/parser';
 import { DOCUMENT_TEXT } from './data/document';
@@ -10,7 +11,7 @@ import type { Section } from './types';
 import { getExplanation } from './services/geminiService';
 import { MenuIcon, XIcon } from './components/icons';
 
-type ViewMode = 'sandbox' | 'framework';
+type ViewMode = 'sandbox' | 'framework' | 'how-it-works';
 
 const App: React.FC = () => {
   const [sections, setSections] = useState<Section[]>([]);
@@ -93,8 +94,9 @@ const App: React.FC = () => {
           />
         )}
 
-        {viewMode === 'sandbox' && <SandboxView />}
+        {viewMode === 'sandbox' && <SandboxView onInvestigate={handleExplainRequest} />}
 
+        {viewMode === 'how-it-works' && <HowItWorksView />}
       </main>
 
       <ExplanationModal

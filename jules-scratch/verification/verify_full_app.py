@@ -8,33 +8,35 @@ def run_verification(playwright):
     try:
         page.goto("http://localhost:3000/")
 
-        # Expect the Sandbox view to be the default
+        # 1. Verify Sandbox View
         expect(page.get_by_role("heading", name="Cognitive Sandbox")).to_be_visible(timeout=10000)
-
-        # Paste text into the textarea
         textarea = page.locator("textarea")
         textarea.fill("The quick brown fox jumps over the lazy dog.")
-
-        # Click the "Analyze" button
         analyze_button = page.get_by_role("button", name="Analyze Text & Extract Concepts")
         analyze_button.click()
-
-        # Wait for keywords to appear and click one
         keyword_button = page.get_by_role("button", name="quick brown fox")
         expect(keyword_button).to_be_visible(timeout=10000)
         keyword_button.click()
-
-        # Click the "Generate" button
         generate_button = page.get_by_role("button", name="Generate Novel Idea")
         generate_button.click()
-
-        # Wait for the hypothesis to appear
         hypothesis = page.locator("div:has-text('Generated Hypothesis:')")
         expect(hypothesis).to_be_visible(timeout=20000)
+        page.screenshot(path="jules-scratch/verification/sandbox_view.png")
+        print("Screenshot of Sandbox view saved.")
 
-        # Take a screenshot
-        page.screenshot(path="jules-scratch/verification/sandbox_feature.png")
-        print("Screenshot saved to jules-scratch/verification/sandbox_feature.png")
+        # 2. Verify "How It Works" View
+        how_it_works_link = page.get_by_role("link", name="How It Works")
+        how_it_works_link.click()
+        expect(page.get_by_role("heading", name="How It Works: The ZCEB Framework")).to_be_visible()
+        page.screenshot(path="jules-scratch/verification/how_it_works_view.png")
+        print("Screenshot of 'How It Works' view saved.")
+
+        # 3. Verify Framework View
+        framework_link = page.get_by_role("link", name="Foundational Manifold and Unified Potential")
+        framework_link.click()
+        expect(page.get_by_role("heading", name="Foundational Manifold and Unified Potential")).to_be_visible()
+        page.screenshot(path="jules-scratch/verification/framework_view.png")
+        print("Screenshot of Framework view saved.")
 
     finally:
         browser.close()

@@ -1,9 +1,14 @@
 
 import React, { useState, useCallback } from 'react';
 import { getKeywordsForText, generateNovelIdeaForText } from '../services/geminiService';
+import { DOCUMENT_TEXT } from '../data/document';
 import { SparklesIcon, LightBulbIcon, LoaderIcon, ClipboardIcon, ClipboardCheckIcon, BrainIcon } from './icons';
 
-export const SandboxView: React.FC = () => {
+interface SandboxViewProps {
+  onInvestigate: (topic: string, context: string) => void;
+}
+
+export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
   const [inputText, setInputText] = useState<string>('');
   const [keywords, setKeywords] = useState<string[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
@@ -11,6 +16,7 @@ export const SandboxView: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+  const [linkToFramework, setLinkToFramework] = useState<boolean>(false);
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(event.target.value);
@@ -50,7 +56,8 @@ export const SandboxView: React.FC = () => {
     setError(null);
     setNovelIdea('');
     try {
-      const idea = await generateNovelIdeaForText(inputText, selectedKeywords);
+      const context = linkToFramework ? `${inputText}\n\n---\n\n${DOCUMENT_TEXT}` : inputText;
+      const idea = await generateNovelIdeaForText(context, selectedKeywords);
       setNovelIdea(idea);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate a novel idea.");
@@ -139,6 +146,18 @@ export const SandboxView: React.FC = () => {
                 </>
               )}
             </button>
+        <div className="ml-4 flex items-center">
+          <input
+            type="checkbox"
+            id="linkToFramework"
+            checked={linkToFramework}
+            onChange={(e) => setLinkToFramework(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+          />
+          <label htmlFor="linkToFramework" className="ml-2 text-sm text-gray-400">
+            Link to ZCEB Framework
+          </label>
+        </div>
           </div>
         </div>
       )}
@@ -150,6 +169,13 @@ export const SandboxView: React.FC = () => {
           <h4 className="font-semibold text-purple-300 mb-2">Generated Hypothesis:</h4>
           <p className="text-gray-300 whitespace-pre-wrap">{novelIdea}</p>
           <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+                onClick={() => onInvestigate(novelIdea, inputText)}
+                className="p-1.5 bg-gray-700/50 rounded-md hover:bg-gray-600"
+                title="Investigate with AI"
+            >
+                <BrainIcon className="h-4 w-4" />
+            </button>
             <button
               onClick={() => handleCopy(novelIdea)}
               className="p-1.5 bg-gray-700/50 rounded-md hover:bg-gray-600"

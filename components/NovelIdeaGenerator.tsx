@@ -2,9 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getKeywords, getNovelIdea } from '../services/geminiService';
 import { Section } from '../types';
-import { SparklesIcon, LightBulbIcon, LoaderIcon } from './icons';
-
-import { ClipboardCheckIcon, ClipboardIcon } from './icons';
+import { SparklesIcon, LightBulbIcon, LoaderIcon, BrainIcon, ClipboardIcon, ClipboardCheckIcon } from './icons';
 
 interface NovelIdeaGeneratorProps {
   section: Section;
@@ -19,13 +17,6 @@ export const NovelIdeaGenerator: React.FC<NovelIdeaGeneratorProps> = ({ section,
   const [isLoadingIdea, setIsLoadingIdea] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
-
-  const handleCopy = useCallback((text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setHasCopied(true);
-      setTimeout(() => setHasCopied(false), 2000);
-    });
-  }, []);
 
   useEffect(() => {
     const fetchKeywords = async () => {
@@ -68,6 +59,13 @@ export const NovelIdeaGenerator: React.FC<NovelIdeaGeneratorProps> = ({ section,
       setIsLoadingIdea(false);
     }
   };
+
+  const handleCopy = useCallback((text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setHasCopied(true);
+      setTimeout(() => setHasCopied(false), 2000);
+    });
+  }, []);
 
   return (
     <div className="mt-8 p-6 bg-gray-800/50 rounded-lg border border-gray-700">

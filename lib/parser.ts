@@ -30,7 +30,6 @@ export function parseDocument(rawText: string): Section[] {
         const contentAndSubsections = block.substring(endOfTitle + 1);
         const subsectionBlocks = contentAndSubsections.split('\\subsection{');
 
-        // Content before the first subsection
         let fullSectionContent = subsectionBlocks[0].trim();
 
         // Append subsections to the parent's content
