@@ -10,12 +10,12 @@ declare global {
     }
 }
 
-interface ContentViewProps {
+interface FrameworkViewProps {
   section: Section;
   onExplain: (topic: string, context: string) => void;
 }
 
-const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => void }> = ({ text, onExplain }) => {
+const InteractiveText: React.FC<{ text: string, onExplain: (topic: string, context: string) => void }> = ({ text, onExplain }) => {
   if (!text) {
     return null;
   }
@@ -29,13 +29,11 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
   
   const regex = new RegExp(`(\\b(?:${KEY_TERMS.join('|')})\\b|\\textbf\\{([^}]+?)\\})`, 'gi');
   
-  // FIX: Use React.ReactNode to correctly type an array of strings and JSX elements, resolving the "Cannot find namespace 'JSX'" error.
   const elements: React.ReactNode[] = [];
   let lastIndex = 0;
   let match;
 
   while ((match = regex.exec(text)) !== null) {
-    // Add the text before the current match
     if (match.index > lastIndex) {
       elements.push(text.substring(lastIndex, match.index));
     }
@@ -43,12 +41,11 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
     const fullMatch = match[0];
     const term = fullMatch.replace(/\\textbf\{|\}/g, '');
 
-    // Add the interactive element for the matched term
     elements.push(
       <span
         key={lastIndex}
         className="bg-cyan-500/10 text-cyan-300 px-1 py-0.5 rounded-md cursor-pointer hover:bg-cyan-500/20 transition-colors duration-200 relative group"
-        onClick={() => onExplain(term)}
+        onClick={() => onExplain(term, text)}
       >
         {term}
         <BrainIcon className="h-3 w-3 inline-block ml-1 opacity-60 group-hover:opacity-100" />
@@ -58,7 +55,6 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
     lastIndex = regex.lastIndex;
   }
 
-  // Add any remaining text after the last match
   if (lastIndex < text.length) {
     elements.push(text.substring(lastIndex));
   }
@@ -67,7 +63,7 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
 };
 
 
-export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) => {
+export const FrameworkView: React.FC<FrameworkViewProps> = ({ section, onExplain }) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -88,19 +84,17 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
           throwOnError: false
         });
 
-        // Make all rendered math equations interactive
         const mathElements = contentRef.current.querySelectorAll('.katex');
         mathElements.forEach(el => {
           const htmlEl = el as HTMLElement;
-          if (htmlEl.dataset.interactive) return; // Avoid re-binding
+          if (htmlEl.dataset.interactive) return;
           htmlEl.dataset.interactive = 'true';
 
           htmlEl.style.cursor = 'pointer';
-          // Add padding and a hover effect to make interactivity obvious
           htmlEl.classList.add('px-1', 'rounded-md', 'transition-colors', 'duration-200', 'hover:bg-cyan-500/10');
           
           htmlEl.addEventListener('click', (e) => {
-            e.stopPropagation(); // Don't trigger clicks on parent elements
+            e.stopPropagation();
             const annotation = htmlEl.querySelector('annotation[encoding="application/x-tex"]');
             if (annotation && annotation.textContent) {
               onExplain(annotation.textContent, section.content);
@@ -110,14 +104,12 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
       }
     };
 
-    // Use a timeout to ensure React has rendered the content before KaTeX tries to process it.
     const timerId = setTimeout(renderAndEnhanceMath, 0);
     
     return () => clearTimeout(timerId);
 
   }, [section.content, onExplain]);
 
-  // Clean up LaTeX commands that are not for math rendering.
   const cleanContent = (text: string) => {
     return text
       .replace(/\\documentclass\{.*?\}/g, '')
@@ -131,6 +123,7 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
       .replace(/\\maketitle/g, '')
       .replace(/\\begin\{document\}/g, '')
       .replace(/\\end\{document\}/g, '')
+      .replace(/\\subsection\{(.+?)\}/g, '<h3 class="text-2xl font-semibold text-gray-200 mt-8 mb-4">$1</h3>')
       .replace(/\\subsubsection\*\{(.+?)\}/g, '<h4 class="text-lg font-semibold text-gray-300 mt-4 mb-2">$1</h4>')
       .replace(/\\begin\{itemize\}/g, '<ul class="list-disc list-inside space-y-2 my-4 pl-4">')
       .replace(/\\end\{itemize\}/g, '</ul>')
@@ -149,10 +142,6 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
   
   const paragraphs = processedContent.split(/\n\n+/).filter(p => p.trim() !== '');
 
-  const handleExplainWithContext = (topic: string) => {
-    onExplain(topic, section.content);
-  }
-
   return (
     <div ref={contentRef} className="flex-1 p-6 md:p-10 lg:p-12 prose prose-invert prose-lg max-w-4xl mx-auto w-full text-gray-300">
       <h1 className="text-3xl md:text-4xl font-bold text-gray-100 border-b border-cyan-500/30 pb-4 mb-6">{section.title}</h1>
@@ -163,7 +152,7 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
         paragraph.startsWith('<') ?
         <div key={index} dangerouslySetInnerHTML={{ __html: paragraph }} /> :
         <p key={index} className="leading-relaxed">
-            <InteractiveText text={paragraph} onExplain={handleExplainWithContext} />
+            <InteractiveText text={paragraph} onExplain={onExplain} />
         </p>
       ))}
 

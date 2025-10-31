@@ -30,30 +30,24 @@ export function parseDocument(rawText: string): Section[] {
         const contentAndSubsections = block.substring(endOfTitle + 1);
         const subsectionBlocks = contentAndSubsections.split('\\subsection{');
 
-        // Content before the first subsection
-        const sectionContent = subsectionBlocks[0].trim();
-        sections.push({
-            id: sectionId,
-            title: sectionTitle,
-            level: 1,
-            content: sectionContent,
-        });
+        let fullSectionContent = subsectionBlocks[0].trim();
 
-        // Subsections
+        // Append subsections to the parent's content
         for (let j = 1; j < subsectionBlocks.length; j++) {
             const subBlock = subsectionBlocks[j];
             const endOfSubTitle = subBlock.indexOf('}');
             const subTitle = cleanTitle(subBlock.substring(0, endOfSubTitle));
-            const subId = `${sectionId}-${subTitle.toLowerCase().replace(/\s+/g, '-')}`;
-            const subContent = subBlock.substring(endOfSubTitle + 1).trim();
 
-            sections.push({
-                id: subId,
-                title: subTitle,
-                level: 2,
-                content: subContent,
-            });
+            // Re-add subsection title to the content
+            fullSectionContent += `\n\n\\subsection{${subTitle}}\n` + subBlock.substring(endOfSubTitle + 1).trim();
         }
+
+        sections.push({
+            id: sectionId,
+            title: sectionTitle,
+            level: 1,
+            content: fullSectionContent,
+        });
     }
 
     return sections;
