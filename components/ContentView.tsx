@@ -48,7 +48,7 @@ const InteractiveText: React.FC<{ text: string, onExplain: (topic: string) => vo
       <span
         key={lastIndex}
         className="bg-cyan-500/10 text-cyan-300 px-1 py-0.5 rounded-md cursor-pointer hover:bg-cyan-500/20 transition-colors duration-200 relative group"
-        onClick={() => onExplain(term)}
+        onClick={() => onExplain(term, text)}
       >
         {term}
         <BrainIcon className="h-3 w-3 inline-block ml-1 opacity-60 group-hover:opacity-100" />
@@ -131,6 +131,7 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
       .replace(/\\maketitle/g, '')
       .replace(/\\begin\{document\}/g, '')
       .replace(/\\end\{document\}/g, '')
+      .replace(/\\subsection\{(.+?)\}/g, '<h3 class="text-2xl font-semibold text-gray-200 mt-8 mb-4">$1</h3>')
       .replace(/\\subsubsection\*\{(.+?)\}/g, '<h4 class="text-lg font-semibold text-gray-300 mt-4 mb-2">$1</h4>')
       .replace(/\\begin\{itemize\}/g, '<ul class="list-disc list-inside space-y-2 my-4 pl-4">')
       .replace(/\\end\{itemize\}/g, '</ul>')
@@ -163,7 +164,7 @@ export const ContentView: React.FC<ContentViewProps> = ({ section, onExplain }) 
         paragraph.startsWith('<') ?
         <div key={index} dangerouslySetInnerHTML={{ __html: paragraph }} /> :
         <p key={index} className="leading-relaxed">
-            <InteractiveText text={paragraph} onExplain={handleExplainWithContext} />
+            <InteractiveText text={paragraph} onExplain={onExplain} />
         </p>
       ))}
 
