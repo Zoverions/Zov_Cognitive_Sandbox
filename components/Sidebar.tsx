@@ -3,7 +3,7 @@ import React from 'react';
 import type { Section } from '../types';
 import { BrainCircuitIcon, XIcon, BeakerIcon, BookOpenIcon } from './icons';
 
-type ViewMode = 'sandbox' | 'framework';
+type ViewMode = 'sandbox' | 'framework' | 'how-it-works';
 
 interface SidebarProps {
     sections: Section[];
@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, activeSectionId, onS
                     </ul>
                 </div>
                 <div>
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Framework v4.0</h3>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Framework v4.1 (Janus)</h3>
                     <ul>
                         {sections.map((section) => (
                             <li key={section.id} className={`${section.level === 2 ? 'ml-4' : ''}`}>
@@ -77,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, activeSectionId, onS
                                     onClick={(e) => {
                                         e.preventDefault();
                                         onSectionSelect(section.id);
+                                        onViewChange('framework');
                                     }}
                                     className={`block px-3 py-2 my-1 rounded-md text-sm transition-colors duration-200 ${
                                         viewMode === 'framework' && activeSectionId === section.id
