@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getKeywords, getNovelIdea } from '../services/geminiService';
-import { Section } from '../types';
-import { SparklesIcon, LightBulbIcon, LoaderIcon, BrainIcon, ClipboardIcon, ClipboardCheckIcon } from './icons';
+import { evaluateContent } from '../services/janusService';
+import { Section, JanusReport } from '../types';
+import { SparklesIcon, LightBulbIcon, LoaderIcon, BrainIcon, ClipboardIcon, ClipboardCheckIcon, ShieldCheckIcon } from './icons';
+import { SystemStatus } from './SystemStatus';
 
 interface NovelIdeaGeneratorProps {
   section: Section;
@@ -15,6 +17,8 @@ export const NovelIdeaGenerator: React.FC<NovelIdeaGeneratorProps> = ({ section,
   const [novelIdea, setNovelIdea] = useState<string>('');
   const [isLoadingKeywords, setIsLoadingKeywords] = useState<boolean>(true);
   const [isLoadingIdea, setIsLoadingIdea] = useState<boolean>(false);
+  const [isAuditing, setIsAuditing] = useState<boolean>(false);
+  const [janusReport, setJanusReport] = useState<JanusReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
 
@@ -50,9 +54,23 @@ export const NovelIdeaGenerator: React.FC<NovelIdeaGeneratorProps> = ({ section,
     setIsLoadingIdea(true);
     setNovelIdea('');
     setError(null);
+    setJanusReport(null);
+
     try {
       const idea = await getNovelIdea(section.title, section.content, selectedKeywords);
       setNovelIdea(idea);
+
+      // Run Janus Audit
+      setIsAuditing(true);
+      try {
+          const report = await evaluateContent(idea);
+          setJanusReport(report);
+      } catch (auditError) {
+          console.error("Janus Audit Failed:", auditError);
+      } finally {
+          setIsAuditing(false);
+      }
+
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate a novel idea.");
     } finally {
@@ -144,6 +162,24 @@ export const NovelIdeaGenerator: React.FC<NovelIdeaGeneratorProps> = ({ section,
                 {hasCopied ? <ClipboardCheckIcon className="h-4 w-4 text-green-400" /> : <ClipboardIcon className="h-4 w-4" />}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Janus Audit Section */}
+      {(isAuditing || janusReport) && (
+        <div className="mt-6">
+            <div className="flex items-center mb-3">
+                 <ShieldCheckIcon className="h-4 w-4 text-gray-400 mr-2" />
+                 <h4 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">Janus Protocol Safety Check</h4>
+             </div>
+             {isAuditing ? (
+                 <div className="flex items-center justify-center p-4 bg-gray-900/50 border border-gray-700/50 rounded-lg">
+                     <LoaderIcon className="animate-spin h-4 w-4 text-purple-500 mr-2" />
+                     <span className="text-sm text-gray-400">Auditing content...</span>
+                 </div>
+             ) : janusReport ? (
+                 <SystemStatus janusReport={janusReport} />
+             ) : null}
         </div>
       )}
     </div>

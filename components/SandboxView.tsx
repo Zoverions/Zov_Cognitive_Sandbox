@@ -1,8 +1,10 @@
-
 import React, { useState, useCallback } from 'react';
 import { getKeywordsForText, generateNovelIdeaForText } from '../services/geminiService';
+import { evaluateContent } from '../services/janusService';
+import { JanusReport } from '../types';
 import { DOCUMENT_TEXT } from '../data/document';
-import { SparklesIcon, LightBulbIcon, LoaderIcon, ClipboardIcon, ClipboardCheckIcon, BrainIcon } from './icons';
+import { SparklesIcon, LightBulbIcon, LoaderIcon, ClipboardIcon, ClipboardCheckIcon, BrainIcon, ShieldCheckIcon } from './icons';
+import { SystemStatus } from './SystemStatus';
 
 interface SandboxViewProps {
   onInvestigate: (topic: string, context: string) => void;
@@ -14,9 +16,11 @@ export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [novelIdea, setNovelIdea] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAuditing, setIsAuditing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [linkToFramework, setLinkToFramework] = useState<boolean>(false);
+  const [janusReport, setJanusReport] = useState<JanusReport | null>(null);
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(event.target.value);
@@ -29,6 +33,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
     setKeywords([]);
     setSelectedKeywords([]);
     setNovelIdea('');
+    setJanusReport(null);
     try {
       const kws = await getKeywordsForText(inputText);
       setKeywords(kws);
@@ -55,10 +60,24 @@ export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
     setIsLoading(true);
     setError(null);
     setNovelIdea('');
+    setJanusReport(null);
+
     try {
       const context = linkToFramework ? `${inputText}\n\n---\n\n${DOCUMENT_TEXT}` : inputText;
       const idea = await generateNovelIdeaForText(context, selectedKeywords);
       setNovelIdea(idea);
+
+      // Run Janus Audit
+      setIsAuditing(true);
+      try {
+          const report = await evaluateContent(idea);
+          setJanusReport(report);
+      } catch (auditError) {
+          console.error("Janus Audit Failed:", auditError);
+      } finally {
+          setIsAuditing(false);
+      }
+
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate a novel idea.");
     } finally {
@@ -128,7 +147,7 @@ export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
             ))}
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
             <button
               onClick={handleGenerateIdea}
               disabled={isLoading || selectedKeywords.length === 0}
@@ -146,18 +165,19 @@ export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
                 </>
               )}
             </button>
-        <div className="ml-4 flex items-center">
-          <input
-            type="checkbox"
-            id="linkToFramework"
-            checked={linkToFramework}
-            onChange={(e) => setLinkToFramework(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-          />
-          <label htmlFor="linkToFramework" className="ml-2 text-sm text-gray-400">
-            Link to ZCEB Framework
-          </label>
-        </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="linkToFramework"
+                checked={linkToFramework}
+                onChange={(e) => setLinkToFramework(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 bg-gray-800"
+              />
+              <label htmlFor="linkToFramework" className="ml-2 text-sm text-gray-400 select-none cursor-pointer">
+                Inject ZCEB Framework Context
+              </label>
+            </div>
           </div>
         </div>
       )}
@@ -165,25 +185,50 @@ export const SandboxView: React.FC<SandboxViewProps> = ({ onInvestigate }) => {
       {error && <div className="mt-4 text-red-400">{error}</div>}
 
       {novelIdea && (
-        <div className="mt-8 p-4 bg-gray-900 rounded-lg border border-gray-600 relative group">
-          <h4 className="font-semibold text-purple-300 mb-2">Generated Hypothesis:</h4>
-          <p className="text-gray-300 whitespace-pre-wrap">{novelIdea}</p>
-          <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-                onClick={() => onInvestigate(novelIdea, inputText)}
-                className="p-1.5 bg-gray-700/50 rounded-md hover:bg-gray-600"
-                title="Investigate with AI"
-            >
-                <BrainIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => handleCopy(novelIdea)}
-              className="p-1.5 bg-gray-700/50 rounded-md hover:bg-gray-600"
-              title="Copy to Clipboard"
-            >
-              {hasCopied ? <ClipboardCheckIcon className="h-4 w-4 text-green-400" /> : <ClipboardIcon className="h-4 w-4" />}
-            </button>
-          </div>
+        <div className="mt-8">
+            <div className="p-6 bg-gray-900 rounded-lg border border-gray-600 relative group shadow-xl">
+            <h4 className="font-semibold text-purple-300 mb-4 flex items-center">
+                <LightBulbIcon className="h-5 w-5 mr-2" />
+                Generated Hypothesis
+            </h4>
+            <div className="prose prose-invert max-w-none text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {novelIdea}
+            </div>
+
+            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                    onClick={() => onInvestigate(novelIdea, inputText)}
+                    className="p-2 bg-gray-800 rounded-md hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                    title="Investigate with AI"
+                >
+                    <BrainIcon className="h-4 w-4" />
+                </button>
+                <button
+                onClick={() => handleCopy(novelIdea)}
+                className="p-2 bg-gray-800 rounded-md hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                title="Copy to Clipboard"
+                >
+                {hasCopied ? <ClipboardCheckIcon className="h-4 w-4 text-green-400" /> : <ClipboardIcon className="h-4 w-4" />}
+                </button>
+            </div>
+            </div>
+
+            {/* Janus Protocol Audit Section */}
+            <div className="mt-8">
+                 <div className="flex items-center mb-4">
+                     <ShieldCheckIcon className="h-5 w-5 text-gray-400 mr-2" />
+                     <h3 className="text-lg font-semibold text-gray-300">Janus Protocol Safety Audit</h3>
+                 </div>
+
+                 {isAuditing ? (
+                     <div className="flex items-center justify-center p-8 bg-gray-900/50 border border-gray-700/50 rounded-xl">
+                         <LoaderIcon className="animate-spin h-6 w-6 text-purple-500 mr-3" />
+                         <span className="text-gray-400 animate-pulse">Running sentience circuit checks & semantic audit...</span>
+                     </div>
+                 ) : janusReport ? (
+                     <SystemStatus janusReport={janusReport} />
+                 ) : null}
+            </div>
         </div>
       )}
     </div>
